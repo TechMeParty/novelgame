@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Crossroads Café</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ui-bg: rgba(18, 22, 30, 0.72);
+      --ui-border: rgba(255, 255, 255, 0.12);
+      --accent: #51a7f9;
+      --accent-mei: #c06be3;
+      --text-color: #f7f9fc;
+      --font-body: "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1f2736, #0b0f19 65%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      color: var(--text-color);
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .game-shell {
+      position: relative;
+      width: min(420px, 100%);
+      height: min(748px, calc(100vh - 24px));
+      border-radius: 24px;
+      overflow: hidden;
+      background: #121620;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      justify-content: stretch;
+      user-select: none;
+    }
+
+    .background {
+      position: absolute;
+      inset: 0;
+      transition: background 0.6s ease;
+      background: radial-gradient(circle at 20% 20%, #3d4c6b, #101524 70%);
+    }
+
+    .background.cafe_day {
+      background: linear-gradient(160deg, #f0f7ff 0%, #a7c2f2 35%, #5476a5 70%, #253244 100%);
+    }
+
+    .background.library {
+      background: linear-gradient(150deg, #fdf6e3 0%, #d9b189 40%, #824d32 85%);
+    }
+
+    .background.park_evening {
+      background: linear-gradient(150deg, #fceabb 0%, #f8b500 35%, #e04f9a 70%, #442f7c 100%);
+    }
+
+    .background.street_twilight {
+      background: linear-gradient(170deg, #f6f8ff 0%, #9fb8d3 40%, #31486b 85%);
+    }
+
+    .background.night_plaza {
+      background: radial-gradient(circle at 30% 20%, #4a5c9f, #141d33 65%, #090f1f);
+    }
+
+    .character-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 12px 120px;
+      pointer-events: none;
+    }
+
+    .sprite {
+      width: 38%;
+      max-width: 170px;
+      aspect-ratio: 3 / 5;
+      border-radius: 120px 120px 40px 40px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(20px) scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .sprite.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .sprite::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.35), transparent 65%);
+      mix-blend-mode: screen;
+      opacity: 0.35;
+    }
+
+    .sprite::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: 6px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .sprite[data-sprite="aoi_happy"] {
+      background: linear-gradient(180deg, #6fc3ff 0%, #2f80ff 60%, #1b3d82 100%);
+    }
+
+    .sprite[data-sprite="aoi_thoughtful"] {
+      background: linear-gradient(180deg, #b0e2ff 0%, #4da2ff 60%, #2b4d8f 100%);
+    }
+
+    .sprite[data-sprite="aoi_excited"] {
+      background: linear-gradient(180deg, #8ce9ff 0%, #35b0ff 50%, #174e9c 100%);
+    }
+
+    .sprite[data-sprite="mei_neutral"] {
+      background: linear-gradient(180deg, #f1d6ff 0%, #c58ef1 60%, #6c3a96 100%);
+    }
+
+    .sprite[data-sprite="mei_smile"] {
+      background: linear-gradient(180deg, #f9e6ff 0%, #d7a7ff 60%, #7a47a7 100%);
+    }
+
+    .sprite[data-sprite="mei_surprised"] {
+      background: linear-gradient(180deg, #ffe8f9 0%, #e1a5f3 55%, #5f357e 100%);
+    }
+
+    .sprite[data-sprite="mc_shadow"] {
+      background: linear-gradient(200deg, #9aa0b5 0%, #4c5474 50%, #1f2439 100%);
+    }
+
+    .ui-top {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      left: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .top-buttons {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      border: 1px solid var(--ui-border);
+      background: rgba(9, 13, 18, 0.68);
+      color: var(--text-color);
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .icon-button:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .skip-button {
+      min-width: 128px;
+      padding: 0 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .skip-button.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .title-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 16, 24, 0.86);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+      padding: 40px;
+      z-index: 6;
+    }
+
+    .title-screen.hidden {
+      display: none;
+    }
+
+    .title-logo {
+      font-size: clamp(1.6rem, 4.2vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+    }
+
+    .title-sub {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.6;
+    }
+
+    .primary-button {
+      padding: 14px 22px;
+      border-radius: 18px;
+      border: none;
+      background: linear-gradient(135deg, #57a7ff, #8145ff);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      min-width: 220px;
+      box-shadow: 0 12px 30px rgba(81, 167, 249, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    .primary-button:active {
+      transform: scale(0.96);
+      box-shadow: 0 8px 22px rgba(81, 167, 249, 0.25);
+    }
+
+    .secondary-button {
+      padding: 12px 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(16, 20, 30, 0.6);
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 220px;
+    }
+
+    .text-window {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      background: var(--ui-bg);
+      border-radius: 20px;
+      border: 1px solid var(--ui-border);
+      padding: 16px 18px 20px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+      z-index: 4;
+    }
+
+    .name-label {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .message-text {
+      font-size: 1.02rem;
+      line-height: 1.7;
+      min-height: 72px;
+      position: relative;
+      white-space: pre-wrap;
+    }
+
+    .tap-indicator {
+      position: absolute;
+      right: 12px;
+      bottom: 8px;
+      font-size: 1rem;
+      opacity: 0;
+      animation: float 1.6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0); opacity: 0; }
+      40% { opacity: 1; }
+      100% { transform: translateY(-6px); opacity: 0; }
+    }
+
+    .choice-container {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 5;
+    }
+
+    .choice-button {
+      border: none;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 1rem;
+      text-align: left;
+      background: rgba(12, 18, 28, 0.72);
+      color: white;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .choice-button:active {
+      transform: translateY(2px);
+      background: rgba(64, 89, 138, 0.85);
+      box-shadow: 0 10px 16px rgba(0, 0, 0, 0.22);
+    }
+
+    .choice-button[data-affects="aoi"] {
+      border: 1px solid rgba(81, 167, 249, 0.6);
+    }
+
+    .choice-button[data-affects="mei"] {
+      border: 1px solid rgba(192, 107, 227, 0.6);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 8, 13, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .panel {
+      width: min(92%, 320px);
+      max-height: 88%;
+      background: rgba(17, 21, 30, 0.95);
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel button,
+    .panel label {
+      font-size: 0.95rem;
+    }
+
+    .panel .slot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(9, 13, 20, 0.7);
+      border-radius: 16px;
+      padding: 12px 14px;
+      gap: 12px;
+    }
+
+    .slot-info {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.3;
+    }
+
+    .slot-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .slot button {
+      padding: 8px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(24, 30, 45, 0.9);
+      color: white;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .close-button {
+      align-self: flex-end;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .log-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .log-entry {
+      background: rgba(28, 34, 48, 0.7);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .log-entry .speaker {
+      font-weight: 700;
+      display: block;
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .settings-group label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(22, 28, 40, 0.7);
+      border-radius: 16px;
+      padding: 10px 14px;
+    }
+
+    .radio-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .radio-row label {
+      background: none;
+      padding: 0;
+      gap: 4px;
+    }
+
+    .radio-row input {
+      accent-color: var(--accent);
+    }
+
+    .settings-group input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 20px;
+      height: 20px;
+    }
+
+    .settings-group input[type="range"] {
+      width: 140px;
+      accent-color: var(--accent);
+    }
+
+    .readme-section {
+      padding: 18px;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ending-banner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: rgba(255, 255, 255, 0.1);
+      text-transform: uppercase;
+    }
+
+    @media (min-width: 768px) {
+      .game-shell {
+        width: 420px;
+        height: 748px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="game-shell" id="gameShell">
+      <div class="background" id="background"></div>
+      <div class="character-layer">
+        <div class="sprite" id="spriteLeft"></div>
+        <div class="sprite" id="spriteRight"></div>
+      </div>
+      <div class="ui-top">
+        <div></div>
+        <div class="top-buttons">
+          <button class="icon-button" id="menuButton" aria-label="メニュー">☰</button>
+          <button class="icon-button skip-button disabled" id="skipButton">⏩既読</button>
+        </div>
+      </div>
+      <div class="title-screen" id="titleScreen">
+        <div class="title-logo">CROSSROADS CAFÉ</div>
+        <div class="title-sub">街角のカフェで交差する３人の午後。<br />選ぶ言葉で未来が変わるライトノベル体験。</div>
+        <button class="primary-button" id="startButton">はじめから</button>
+        <button class="secondary-button" id="continueButton">つづきから</button>
+        <div class="readme-section">
+          タップでテキストを送れます。メニューからログやセーブを利用できます。
+        </div>
+      </div>
+      <div class="ending-banner" id="endingBanner"></div>
+      <div class="choice-container" id="choiceContainer"></div>
+      <div class="text-window" id="textWindow">
+        <div class="name-label" id="nameLabel"></div>
+        <div class="message-text" id="messageText"></div>
+        <div class="tap-indicator" id="tapIndicator">▶</div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="menuOverlay">
+      <div class="panel">
+        <button class="close-button" data-close="menu">閉じる ✕</button>
+        <h2>MENU</h2>
+        <button class="secondary-button" data-open="log">ログ</button>
+        <button class="secondary-button" data-open="settings">設定</button>
+        <button class="secondary-button" data-open="saveload">セーブ / ロード</button>
+        <button class="secondary-button" id="returnTitleButton">タイトルに戻る</button>
+      </div>
+    </div>
+    <div class="overlay hidden" id="logOverlay">
+      <div class="panel">
+        <button class="close-button" data-close="log">閉じる ✕</button>
+        <h2>LOG</h2>
+        <div class="log-list" id="logList"></div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="settingsOverlay">
+      <div class="panel">
+        <button class="close-button" data-close="settings">閉じる ✕</button>
+        <h2>SETTINGS</h2>
+        <div class="settings-group">
+          <label>
+            サウンド
+            <input type="checkbox" id="soundToggle" />
+          </label>
+          <label>
+            音量
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.1" />
+          </label>
+          <div>
+            テキスト速度
+            <div class="radio-row">
+              <label><input type="radio" name="textSpeed" value="slow" />遅</label>
+              <label><input type="radio" name="textSpeed" value="medium" />中</label>
+              <label><input type="radio" name="textSpeed" value="fast" />速</label>
+            </div>
+          </div>
+          <label>
+            既読スキップを許可
+            <input type="checkbox" id="skipToggle" />
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="saveOverlay">
+      <div class="panel">
+        <button class="close-button" data-close="saveload">閉じる ✕</button>
+        <h2>SAVE & LOAD</h2>
+        <div class="slot-list" id="slotList"></div>
+        <div class="slot auto-slot">
+          <div class="slot-info">
+            <strong>オートセーブ</strong><br />シーン: <span id="autoScene">-</span>
+          </div>
+          <div class="slot-actions">
+            <button data-auto-load>ロード</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.gameEvents = window.gameEvents || {
+      emit(eventName, payload) {
+        console.log("[gameEvents]", eventName, payload);
+      }
+    };
+
+    const storageKey = "crossroads_save_v1";
+    const defaultSettings = {
+      textSpeed: "medium",
+      allowSkip: false,
+      soundOn: false,
+      volume: 0.6
+    };
+
+    const textSpeedMap = {
+      slow: 60,
+      medium: 32,
+      fast: 16
+    };
+
+    const storyData = {
+      characters: {
+        system: { name: "システム", color: "#ced4ff" },
+        mc: { name: "あなた", color: "#ffffff" },
+        aoi: { name: "葵", color: "#51a7f9" },
+        mei: { name: "芽衣", color: "#c06be3" }
+      },
+      scenes: [
+        {
+          id: "tutorial",
+          bg: "cafe_day",
+          spriteLeft: "aoi_happy",
+          spriteRight: "mei_neutral",
+          speaker: "system",
+          text: "タップでテキストが進みます。右上のメニューからログ・セーブ・設定が開けます。",
+          next: "intro1"
+        },
+        {
+          id: "intro1",
+          bg: "cafe_day",
+          spriteLeft: "aoi_happy",
+          spriteRight: "mei_neutral",
+          speaker: "mc",
+          text: "土曜の午後。賑やかなカフェで、二人とばったり出会った。",
+          choices: [
+            {
+              label: "スポーツの大会の話題を振る（→葵+）",
+              to: "shared2",
+              effects: { aoi: 1 }
+            },
+            {
+              label: "読んでいる本について聞く（→芽衣+）",
+              to: "shared2",
+              effects: { mei: 1 }
+            }
+          ]
+        },
+        {
+          id: "shared2",
+          bg: "cafe_day",
+          spriteLeft: "aoi_excited",
+          spriteRight: "mei_neutral",
+          speaker: "aoi",
+          text: "ねえ、今度ストリートコートでミニゲームがあるんだけど、一緒に見に行かない？",
+          next: "shared3"
+        },
+        {
+          id: "shared3",
+          bg: "cafe_day",
+          spriteLeft: "aoi_thoughtful",
+          spriteRight: "mei_smile",
+          speaker: "mc",
+          text: "話題は自然と週末の予定へ。どんな言葉を返そうか。",
+          choices: [
+            {
+              label: "体を動かすのって気持ちいいよね（→葵+）",
+              to: "shared4",
+              effects: { aoi: 1 }
+            },
+            {
+              label: "のんびり読書する時間も大切だよ（→芽衣+）",
+              to: "shared4",
+              effects: { mei: 1 }
+            },
+            {
+              label: "二人が楽しめること、探してみない？",
+              to: "shared4",
+              effects: { aoi: 1, mei: 1 }
+            }
+          ]
+        },
+        {
+          id: "shared4",
+          bg: "cafe_day",
+          spriteLeft: "aoi_happy",
+          spriteRight: "mei_smile",
+          speaker: "mei",
+          text: "そういえば、新しいクロスロードストリートにカフェができたみたい。散歩がてら寄ってみる？",
+          next: "split_choice"
+        },
+        {
+          id: "split_choice",
+          bg: "street_twilight",
+          spriteLeft: "aoi_thoughtful",
+          spriteRight: "mei_neutral",
+          speaker: "mc",
+          text: "誰と歩を合わせる？それぞれ違う景色が待っている。",
+          choices: [
+            {
+              label: "葵と街を駆け抜ける",
+              to: "aoi_route1",
+              effects: { setRoute: "aoi", aoi: 1 }
+            },
+            {
+              label: "芽衣と本屋通りをめぐる",
+              to: "mei_route1",
+              effects: { setRoute: "mei", mei: 1 }
+            }
+          ]
+        },
+        {
+          id: "aoi_route1",
+          bg: "street_twilight",
+          spriteLeft: "aoi_excited",
+          speaker: "aoi",
+          text: "ね、あの坂を上った先に新しいコートがあるんだって！ちょっと寄り道してみよ？",
+          choices: [
+            {
+              label: "全力ダッシュで競争しよう！",
+              to: "aoi_route2",
+              effects: { aoi: 1 }
+            },
+            {
+              label: "じゃあ、息を合わせてジョギングしよう",
+              to: "aoi_route2",
+              effects: { aoi: 1 }
+            }
+          ]
+        },
+        {
+          id: "aoi_route2",
+          bg: "park_evening",
+          spriteLeft: "aoi_happy",
+          spriteRight: "mc_shadow",
+          speaker: "aoi",
+          text: "わー！夕焼けがきれい。ねえ、今度ここでシュート練習しようよ。",
+          choices: [
+            {
+              label: "次の土曜の朝なら空いてるよ",
+              to: "aoi_route3",
+              effects: { aoi: 1 }
+            },
+            {
+              label: "朝は苦手だけど、午後なら行けるかも",
+              to: "aoi_route3",
+              effects: {}
+            }
+          ]
+        },
+        {
+          id: "aoi_route3",
+          bg: "park_evening",
+          spriteLeft: "aoi_thoughtful",
+          speaker: "mc",
+          text: "葵の目が期待に輝いている。最後に、どんな言葉を添えよう。",
+          choices: [
+            {
+              label: "一緒に汗を流して、そのあとカフェで休もう",
+              to: "evaluate_route",
+              effects: { aoi: 1 }
+            },
+            {
+              label: "もし予定が合わなかったらまた今度で…",
+              to: "evaluate_route",
+              effects: {}
+            }
+          ]
+        },
+        {
+          id: "mei_route1",
+          bg: "library",
+          spriteRight: "mei_smile",
+          speaker: "mei",
+          text: "ここの棚、翻訳詩集が充実してるの。よかったらおすすめを案内するね。",
+          choices: [
+            {
+              label: "静かな詩、好きなんだ。選んでほしい",
+              to: "mei_route2",
+              effects: { mei: 1 }
+            },
+            {
+              label: "実はエッセイも気になってて…",
+              to: "mei_route2",
+              effects: {}
+            }
+          ]
+        },
+        {
+          id: "mei_route2",
+          bg: "library",
+          spriteRight: "mei_neutral",
+          speaker: "mc",
+          text: "芽衣はページをめくりながら、穏やかな声で感想を聞かせてくれる。",
+          choices: [
+            {
+              label: "君の感想、もっとゆっくり聞いてみたい",
+              to: "mei_route3",
+              effects: { mei: 1 }
+            },
+            {
+              label: "今度はカフェで読書会しようか",
+              to: "mei_route3",
+              effects: { mei: 1 }
+            },
+            {
+              label: "実はスポーツも捨てがたくて…",
+              to: "mei_route3",
+              effects: { aoi: 1 }
+            }
+          ]
+        },
+        {
+          id: "mei_route3",
+          bg: "night_plaza",
+          spriteRight: "mei_surprised",
+          speaker: "mei",
+          text: "……風が涼しいね。そろそろ帰り道かな。どんな約束をしよう。",
+          choices: [
+            {
+              label: "来週の夜、ライトアップを一緒に見に行かない？",
+              to: "evaluate_route",
+              effects: { mei: 1 }
+            },
+            {
+              label: "また図書館で会えたら話そう",
+              to: "evaluate_route",
+              effects: {}
+            }
+          ]
+        },
+        {
+          id: "evaluate_route",
+          bg: "street_twilight",
+          spriteLeft: "aoi_thoughtful",
+          spriteRight: "mei_neutral",
+          speaker: "mc",
+          text: "今日の時間を胸に刻む。返ってきた表情で、すべてが決まる。",
+          evaluateEnding: true
+        },
+        {
+          id: "ending_aoi",
+          bg: "park_evening",
+          spriteLeft: "aoi_excited",
+          speaker: "aoi",
+          text: "じゃあ、来週の土曜朝にここで集合ね！走ったあと、新しくできたカフェでフローズンドリンク奢るよ。\n\n“To be continued…”",
+          endingType: "aoi"
+        },
+        {
+          id: "ending_mei",
+          bg: "night_plaza",
+          spriteRight: "mei_smile",
+          speaker: "mei",
+          text: "来週の水曜、駅前のカフェで黄昏読書会しよう。あなたの好きな物語も教えて。\n\n“To be continued…”",
+          endingType: "mei"
+        },
+        {
+          id: "ending_neutral",
+          bg: "street_twilight",
+          spriteLeft: "aoi_thoughtful",
+          spriteRight: "mei_neutral",
+          speaker: "mc",
+          text: "今日はここまでにしようか。また都合が合ったら集まろう。",
+          endingType: "neutral"
+        },
+        {
+          id: "ending_fail",
+          bg: "cafe_day",
+          spriteLeft: "aoi_thoughtful",
+          spriteRight: "mei_neutral",
+          speaker: "aoi",
+          text: "ごめん、今日はちょっと気分が乗らなくて…。また別の日にでも。",
+          endingType: "fail"
+        }
+      ],
+      endings: [
+        { id: "aoi_clear", require: { route: "aoi", aoi: 4 }, goto: "ending_aoi" },
+        { id: "aoi_neutral", require: { route: "aoi", aoi: 2 }, goto: "ending_neutral" },
+        { id: "mei_clear", require: { route: "mei", mei: 4 }, goto: "ending_mei" },
+        { id: "mei_neutral", require: { route: "mei", mei: 2 }, goto: "ending_neutral" },
+        { id: "fail", require: {}, goto: "ending_fail" }
+      ]
+    };
+
+    const elements = {
+      titleScreen: document.getElementById("titleScreen"),
+      startButton: document.getElementById("startButton"),
+      continueButton: document.getElementById("continueButton"),
+      textWindow: document.getElementById("textWindow"),
+      nameLabel: document.getElementById("nameLabel"),
+      messageText: document.getElementById("messageText"),
+      tapIndicator: document.getElementById("tapIndicator"),
+      choiceContainer: document.getElementById("choiceContainer"),
+      menuButton: document.getElementById("menuButton"),
+      menuOverlay: document.getElementById("menuOverlay"),
+      logOverlay: document.getElementById("logOverlay"),
+      settingsOverlay: document.getElementById("settingsOverlay"),
+      saveOverlay: document.getElementById("saveOverlay"),
+      logList: document.getElementById("logList"),
+      soundToggle: document.getElementById("soundToggle"),
+      volumeSlider: document.getElementById("volumeSlider"),
+      skipToggle: document.getElementById("skipToggle"),
+      skipButton: document.getElementById("skipButton"),
+      slotList: document.getElementById("slotList"),
+      autoScene: document.getElementById("autoScene"),
+      returnTitleButton: document.getElementById("returnTitleButton"),
+      background: document.getElementById("background"),
+      spriteLeft: document.getElementById("spriteLeft"),
+      spriteRight: document.getElementById("spriteRight"),
+      endingBanner: document.getElementById("endingBanner"),
+      gameShell: document.getElementById("gameShell")
+    };
+
+    const state = {
+      currentSceneId: null,
+      affection: { aoi: 0, mei: 0 },
+      route: null,
+      seenScenes: new Set(),
+      log: [],
+      textTimer: null,
+      textIndex: 0,
+      fullText: "",
+      displaying: "",
+      textComplete: true,
+      settings: { ...defaultSettings },
+      skipAvailable: false,
+      saves: {
+        slots: [null, null, null],
+        auto: null
+      }
+    };
+
+    const bgm = new Audio();
+    bgm.loop = true;
+
+    function init() {
+      hydrateStorage();
+      bindUI();
+      refreshContinueButton();
+      elements.textWindow.addEventListener("click", handleTextWindowTap);
+      elements.startButton.addEventListener("click", () => startGame(true));
+      elements.continueButton.addEventListener("click", handleContinue);
+      elements.menuButton.addEventListener("click", () => toggleOverlay(elements.menuOverlay, true));
+      elements.returnTitleButton.addEventListener("click", returnToTitle);
+      elements.skipButton.addEventListener("click", handleSkip);
+      document.querySelectorAll("[data-close]").forEach(btn => {
+        btn.addEventListener("click", (ev) => {
+          const target = ev.currentTarget.getAttribute("data-close");
+          closeOverlay(target);
+        });
+      });
+      document.querySelectorAll("[data-open]").forEach(btn => {
+        btn.addEventListener("click", (ev) => {
+          const target = ev.currentTarget.getAttribute("data-open");
+          openOverlay(target);
+        });
+      });
+      elements.soundToggle.addEventListener("change", () => {
+        state.settings.soundOn = elements.soundToggle.checked;
+        updateSoundState();
+        persistStorage();
+        window.gameEvents.emit("mute_toggle", { muted: !state.settings.soundOn });
+      });
+      elements.volumeSlider.addEventListener("input", () => {
+        const value = parseFloat(elements.volumeSlider.value);
+        if (!Number.isNaN(value)) {
+          state.settings.volume = value;
+          updateSoundState();
+          persistStorage();
+          window.gameEvents.emit("settings_change", { volume: state.settings.volume });
+        }
+      });
+      elements.skipToggle.addEventListener("change", () => {
+        state.settings.allowSkip = elements.skipToggle.checked;
+        persistStorage();
+        window.gameEvents.emit("settings_change", { allowSkip: state.settings.allowSkip });
+        updateSkipButton();
+      });
+      document.querySelectorAll("input[name='textSpeed']").forEach(radio => {
+        radio.addEventListener("change", (ev) => {
+          if (ev.target.checked) {
+            state.settings.textSpeed = ev.target.value;
+            persistStorage();
+            window.gameEvents.emit("settings_change", { textSpeed: state.settings.textSpeed });
+          }
+        });
+      });
+      buildSaveSlots();
+      updateSettingsUI();
+    }
+
+    function hydrateStorage() {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return;
+      try {
+        const data = JSON.parse(stored);
+        if (data.settings) {
+          state.settings = { ...defaultSettings, ...data.settings };
+        }
+        if (Array.isArray(data.slots)) {
+          state.saves.slots = data.slots.map(slot => slot ? { ...slot } : null);
+        }
+        if (data.auto) {
+          state.saves.auto = { ...data.auto };
+        }
+      } catch (error) {
+        console.warn("Failed to load storage", error);
+      }
+    }
+
+    function persistStorage() {
+      const payload = {
+        settings: state.settings,
+        slots: state.saves.slots,
+        auto: state.saves.auto
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    function bindUI() {
+      elements.saveOverlay.querySelector("[data-auto-load]").addEventListener("click", () => {
+        if (state.saves.auto) {
+          loadSnapshot(state.saves.auto, true);
+        }
+      });
+    }
+
+    function refreshContinueButton() {
+      const hasAuto = Boolean(state.saves.auto);
+      elements.continueButton.disabled = !hasAuto;
+      elements.continueButton.style.opacity = hasAuto ? "1" : "0.4";
+    }
+
+    function handleContinue() {
+      if (state.saves.auto) {
+        startGame(false, state.saves.auto);
+      }
+    }
+
+    function startGame(isNew, snapshot = null) {
+      elements.titleScreen.classList.add("hidden");
+      elements.gameShell.classList.remove("title-mode");
+      window.gameEvents.emit("start", { newGame: isNew });
+      if (snapshot) {
+        loadSnapshot(snapshot, true);
+      } else {
+        resetState();
+        goToScene("tutorial");
+      }
+    }
+
+    function resetState() {
+      state.currentSceneId = null;
+      state.affection = { aoi: 0, mei: 0 };
+      state.route = null;
+      state.seenScenes = new Set();
+      state.log = [];
+      if (state.textTimer) clearInterval(state.textTimer);
+      state.textTimer = null;
+      state.textIndex = 0;
+      state.fullText = "";
+      state.displaying = "";
+      state.textComplete = true;
+      state.skipAvailable = false;
+      elements.endingBanner.textContent = "";
+      elements.endingBanner.style.opacity = "0";
+      updateSkipButton();
+      updateLogUI();
+    }
+
+    function toggleOverlay(el, show) {
+      if (!el) return;
+      el.classList.toggle("hidden", !show);
+      if (show && el !== elements.menuOverlay) {
+        elements.menuOverlay.classList.add("hidden");
+      }
+      updateOverlayState();
+    }
+
+    function openOverlay(key) {
+      elements.menuOverlay.classList.add("hidden");
+      switch (key) {
+        case "log":
+          updateLogUI();
+          toggleOverlay(elements.logOverlay, true);
+          break;
+        case "settings":
+          updateSettingsUI();
+          toggleOverlay(elements.settingsOverlay, true);
+          break;
+        case "saveload":
+          updateSlotPanel();
+          toggleOverlay(elements.saveOverlay, true);
+          break;
+        default:
+          break;
+      }
+    }
+
+    function closeOverlay(key) {
+      switch (key) {
+        case "menu":
+          toggleOverlay(elements.menuOverlay, false);
+          break;
+        case "log":
+          toggleOverlay(elements.logOverlay, false);
+          break;
+        case "settings":
+          toggleOverlay(elements.settingsOverlay, false);
+          break;
+        case "saveload":
+          toggleOverlay(elements.saveOverlay, false);
+          break;
+        default:
+          break;
+      }
+    }
+
+    function updateOverlayState() {
+      const overlays = [elements.menuOverlay, elements.logOverlay, elements.settingsOverlay, elements.saveOverlay];
+      const anyOpen = overlays.some(el => !el.classList.contains("hidden"));
+      elements.gameShell.classList.toggle("menu-open", anyOpen);
+    }
+
+    function updateSettingsUI() {
+      elements.soundToggle.checked = state.settings.soundOn;
+      elements.volumeSlider.value = state.settings.volume;
+      elements.skipToggle.checked = state.settings.allowSkip;
+      document.querySelectorAll("input[name='textSpeed']").forEach(radio => {
+        radio.checked = radio.value === state.settings.textSpeed;
+      });
+      updateSoundState();
+      updateSkipButton();
+    }
+
+    function updateSoundState() {
+      bgm.volume = state.settings.volume;
+      bgm.muted = !state.settings.soundOn;
+      if (elements.volumeSlider) {
+        elements.volumeSlider.disabled = !state.settings.soundOn;
+      }
+      if (!state.settings.soundOn) {
+        bgm.pause();
+      } else if (bgm.src) {
+        bgm.play().catch(() => {});
+      }
+    }
+
+    function buildSaveSlots() {
+      elements.slotList.innerHTML = "";
+      state.saves.slots.forEach((slot, idx) => {
+        const slotEl = document.createElement("div");
+        slotEl.className = "slot";
+        const info = document.createElement("div");
+        info.className = "slot-info";
+        info.innerHTML = `<strong>スロット ${idx + 1}</strong><br />${slot ? `シーン: ${slot.scene}` : "未使用"}`;
+        const actions = document.createElement("div");
+        actions.className = "slot-actions";
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "セーブ";
+        saveBtn.addEventListener("click", () => saveToSlot(idx));
+        const loadBtn = document.createElement("button");
+        loadBtn.textContent = "ロード";
+        loadBtn.addEventListener("click", () => {
+          if (state.saves.slots[idx]) {
+            loadSnapshot(state.saves.slots[idx], true);
+          }
+        });
+        actions.appendChild(saveBtn);
+        actions.appendChild(loadBtn);
+        slotEl.appendChild(info);
+        slotEl.appendChild(actions);
+        elements.slotList.appendChild(slotEl);
+      });
+    }
+
+    function updateSlotPanel() {
+      buildSaveSlots();
+      elements.autoScene.textContent = state.saves.auto ? state.saves.auto.scene : "-";
+    }
+
+    function updateLogUI() {
+      elements.logList.innerHTML = "";
+      state.log.slice(-50).forEach(entry => {
+        const item = document.createElement("div");
+        item.className = "log-entry";
+        const speaker = document.createElement("span");
+        speaker.className = "speaker";
+        speaker.textContent = entry.speaker;
+        const text = document.createElement("span");
+        text.textContent = entry.text;
+        item.appendChild(speaker);
+        item.appendChild(text);
+        elements.logList.appendChild(item);
+      });
+      elements.logList.scrollTop = elements.logList.scrollHeight;
+    }
+
+    function updateSkipButton() {
+      const canSkip = state.settings.allowSkip && state.skipAvailable;
+      elements.skipButton.classList.toggle("disabled", !canSkip);
+    }
+
+    function handleTextWindowTap() {
+      if (!state.currentSceneId) return;
+      if (!state.textComplete) {
+        finishTextInstantly();
+        return;
+      }
+      const scene = getScene(state.currentSceneId);
+      if (!scene) return;
+      if (scene.choices && scene.choices.length) {
+        return; // wait for choice selection
+      }
+      if (scene.evaluateEnding) {
+        const endingId = evaluateEnding();
+        if (endingId) {
+          goToScene(endingId);
+        }
+        return;
+      }
+      if (scene.endingType) {
+        returnToTitle();
+        return;
+      }
+      if (scene.next) {
+        goToScene(scene.next);
+      }
+    }
+
+    function handleSkip() {
+      if (!state.settings.allowSkip || !state.skipAvailable) return;
+      const scene = getScene(state.currentSceneId);
+      if (!scene) return;
+      window.gameEvents.emit("skip", { scene: scene.id });
+      if (scene.evaluateEnding) {
+        const endingId = evaluateEnding();
+        if (endingId) {
+          goToScene(endingId, { skip: true });
+        }
+        return;
+      }
+      if (scene.endingType) {
+        returnToTitle();
+        return;
+      }
+      if (scene.choices && scene.choices.length) {
+        // choose first option automatically during skip
+        handleChoice(scene.choices[0], scene);
+        return;
+      }
+      if (scene.next) {
+        goToScene(scene.next, { skip: true });
+      }
+    }
+
+    function goToScene(sceneId, options = {}) {
+      const scene = getScene(sceneId);
+      if (!scene) {
+        console.warn("Unknown scene", sceneId);
+        return;
+      }
+      const previouslySeen = state.seenScenes.has(sceneId);
+      state.currentSceneId = sceneId;
+      if (!previouslySeen) {
+        state.seenScenes.add(sceneId);
+      }
+      state.skipAvailable = previouslySeen;
+      updateSkipButton();
+      updateBackground(scene.bg);
+      updateSprites(scene);
+      displaySceneText(scene, options);
+      renderChoices(scene);
+      if (scene.endingType) {
+        elements.endingBanner.textContent = scene.endingType.toUpperCase();
+        elements.endingBanner.style.opacity = "1";
+        window.gameEvents.emit("ending", { ending: scene.endingType });
+      } else {
+        elements.endingBanner.textContent = "";
+        elements.endingBanner.style.opacity = "0";
+      }
+      if (!scene.endingType) {
+        autoSave();
+      }
+    }
+
+    function getScene(id) {
+      return storyData.scenes.find(scene => scene.id === id);
+    }
+
+    function updateBackground(bg) {
+      elements.background.className = "background";
+      if (bg) {
+        elements.background.classList.add(bg);
+      }
+    }
+
+    function updateSprites(scene) {
+      const left = scene.spriteLeft;
+      const right = scene.spriteRight;
+      const leftVisible = Boolean(left);
+      const rightVisible = Boolean(right);
+      elements.spriteLeft.dataset.sprite = left || "";
+      elements.spriteLeft.dataset.label = left ? resolveSpriteLabel(left) : "";
+      elements.spriteLeft.classList.toggle("visible", leftVisible);
+      elements.spriteRight.dataset.sprite = right || "";
+      elements.spriteRight.dataset.label = right ? resolveSpriteLabel(right) : "";
+      elements.spriteRight.classList.toggle("visible", rightVisible);
+    }
+
+    function resolveSpriteLabel(spriteId) {
+      if (spriteId.startsWith("aoi")) return storyData.characters.aoi.name;
+      if (spriteId.startsWith("mei")) return storyData.characters.mei.name;
+      if (spriteId.startsWith("mc")) return storyData.characters.mc.name;
+      return "";
+    }
+
+    function displaySceneText(scene, options = {}) {
+      const speaker = storyData.characters[scene.speaker]?.name || "";
+      elements.nameLabel.textContent = speaker;
+      startTyping(scene.text || "", () => {
+        if (!scene.choices || scene.choices.length === 0) {
+          elements.tapIndicator.style.opacity = "1";
+        }
+        if (!scene.endingType && !options.fromLoad) {
+          pushLogEntry(speaker, scene.text);
+        }
+      }, options.skip);
+    }
+
+    function startTyping(text, onComplete, skip) {
+      if (state.textTimer) {
+        clearInterval(state.textTimer);
+      }
+      state.fullText = text;
+      state.displaying = "";
+      state.textIndex = 0;
+      state.textComplete = false;
+      elements.tapIndicator.style.opacity = "0";
+      elements.messageText.textContent = "";
+      if (skip) {
+        elements.messageText.textContent = text;
+        state.displaying = text;
+        state.textIndex = text.length;
+        state.textComplete = true;
+        onComplete && onComplete();
+        return;
+      }
+      const speed = textSpeedMap[state.settings.textSpeed] || textSpeedMap.medium;
+      state.textTimer = setInterval(() => {
+        if (state.textIndex >= state.fullText.length) {
+          clearInterval(state.textTimer);
+          state.textTimer = null;
+          state.textComplete = true;
+          elements.messageText.textContent = state.fullText;
+          onComplete && onComplete();
+          return;
+        }
+        state.displaying += state.fullText[state.textIndex];
+        state.textIndex += 1;
+        elements.messageText.textContent = state.displaying;
+      }, speed);
+    }
+
+    function finishTextInstantly() {
+      if (state.textTimer) {
+        clearInterval(state.textTimer);
+        state.textTimer = null;
+      }
+      state.textComplete = true;
+      state.displaying = state.fullText;
+      elements.messageText.textContent = state.fullText;
+      elements.tapIndicator.style.opacity = "1";
+    }
+
+    function renderChoices(scene) {
+      elements.choiceContainer.innerHTML = "";
+      if (!scene.choices || !scene.choices.length) {
+        return;
+      }
+      scene.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.className = "choice-button";
+        const affects = determinePrimaryEffect(choice.effects);
+        if (affects) {
+          btn.dataset.affects = affects;
+        }
+        btn.textContent = choice.label;
+        btn.addEventListener("click", () => handleChoice(choice, scene));
+        elements.choiceContainer.appendChild(btn);
+      });
+    }
+
+    function determinePrimaryEffect(effects = {}) {
+      if (effects.aoi && effects.aoi > 0 && !effects.mei) return "aoi";
+      if (effects.mei && effects.mei > 0 && !effects.aoi) return "mei";
+      return "";
+    }
+
+    function handleChoice(choice, scene) {
+      applyEffects(choice.effects || {});
+      window.gameEvents.emit("choice", {
+        scene: scene.id,
+        choice: choice.label,
+        affection: { ...state.affection },
+        route: state.route
+      });
+      goToScene(choice.to);
+    }
+
+    function applyEffects(effects) {
+      if (!effects) return;
+      if (typeof effects.aoi === "number") {
+        state.affection.aoi = Math.max(0, state.affection.aoi + effects.aoi);
+      }
+      if (typeof effects.mei === "number") {
+        state.affection.mei = Math.max(0, state.affection.mei + effects.mei);
+      }
+      if (effects.setRoute) {
+        state.route = effects.setRoute;
+      }
+    }
+
+    function pushLogEntry(speaker, text) {
+      if (!text) return;
+      state.log.push({ speaker, text });
+      if (state.log.length > 120) {
+        state.log.splice(0, state.log.length - 120);
+      }
+    }
+
+    function evaluateEnding() {
+      for (const ending of storyData.endings) {
+        if (meetsRequirement(ending.require)) {
+          window.gameEvents.emit("branch_resolved", {
+            route: state.route,
+            affection: { ...state.affection },
+            ending: ending.goto
+          });
+          return ending.goto;
+        }
+      }
+      return null;
+    }
+
+    function meetsRequirement(require = {}) {
+      if (require.route && state.route !== require.route) {
+        return false;
+      }
+      if (typeof require.aoi === "number" && state.affection.aoi < require.aoi) {
+        return false;
+      }
+      if (typeof require.mei === "number" && state.affection.mei < require.mei) {
+        return false;
+      }
+      return true;
+    }
+
+    function autoSave() {
+      const snapshot = createSnapshot();
+      state.saves.auto = snapshot;
+      persistStorage();
+      elements.autoScene.textContent = snapshot.scene;
+      refreshContinueButton();
+      window.gameEvents.emit("autosave", snapshot);
+    }
+
+    function saveToSlot(index) {
+      const snapshot = createSnapshot();
+      state.saves.slots[index] = snapshot;
+      persistStorage();
+      buildSaveSlots();
+      window.gameEvents.emit("save", { slot: index, snapshot });
+    }
+
+    function createSnapshot() {
+      return {
+        scene: state.currentSceneId,
+        affection: { ...state.affection },
+        route: state.route,
+        seen: Array.from(state.seenScenes),
+        log: state.log.slice(-60)
+      };
+    }
+
+    function loadSnapshot(snapshot, fromMenu) {
+      if (!snapshot) return;
+      state.affection = { ...snapshot.affection };
+      state.route = snapshot.route || null;
+      state.seenScenes = new Set(snapshot.seen || []);
+      state.log = snapshot.log ? [...snapshot.log] : [];
+      goToScene(snapshot.scene, { skip: true, fromLoad: true });
+      if (fromMenu) {
+        closeOverlay("saveload");
+        closeOverlay("menu");
+      }
+      persistStorage();
+      window.gameEvents.emit("load", { scene: snapshot.scene });
+    }
+
+    function returnToTitle() {
+      elements.menuOverlay.classList.add("hidden");
+      elements.logOverlay.classList.add("hidden");
+      elements.settingsOverlay.classList.add("hidden");
+      elements.saveOverlay.classList.add("hidden");
+      elements.titleScreen.classList.remove("hidden");
+      elements.endingBanner.textContent = "";
+      updateOverlayState();
+      resetState();
+      window.gameEvents.emit("return_title", {});
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const overlays = [elements.menuOverlay, elements.logOverlay, elements.settingsOverlay, elements.saveOverlay];
+        const open = overlays.find(el => !el.classList.contains("hidden"));
+        if (open) {
+          overlays.forEach(el => el.classList.add("hidden"));
+          updateOverlayState();
+        }
+      }
+    });
+
+    window.addEventListener("load", init);
+  </script>
+  <!--
+    README (quick reference)
+    Dreamcore.gg / CrazyGames: index.html をアップロードするだけで動作します。
+    画像差し替え: CSS の .sprite[data-sprite="*"] 背景を任意の画像 (background-image:url()) に変更してください。
+    story.json への切り出し: const storyData = ... を同等の JSON にし、fetch で読み込む構造に変更可能です。スキーマは characters / scenes[] / endings[]。
+    セーブ仕様: localStorage キー crossroads_save_v1 に settings, slots(3), auto を JSON 格納。既読シーンは seen 配列で保持。スキップは既読かつ設定ONのみ。
+    既知制約: ブラウザ自動再生制限によりサウンドはユーザー操作後に再生されます。
+    License: MIT
+  -->
+</body>
+</html>
